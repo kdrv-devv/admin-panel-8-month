@@ -16,5 +16,5 @@ export interface MovieTicketData {
   country: string;
   year: number;
   description: string;
-  ticket_count?: string;
+  ticket_count?: number;
 }

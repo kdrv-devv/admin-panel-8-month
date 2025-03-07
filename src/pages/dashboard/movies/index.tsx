@@ -104,6 +104,11 @@ const Movies = () => {
       key: "price",
     },
     {
+      title: "Ticket Count",
+      dataIndex: "ticket_count",
+      key: "ticket_count",
+    },
+    {
       title: "Target Audience",
       dataIndex: "targetAudience",
       key: "targetAudience",
@@ -133,7 +138,7 @@ const Movies = () => {
       key: "actions",
       render: (_, record) => (
         <Space size="middle">
-          <button  className="bg-green-600 text-[10px] text-white h-[20px] w-[40px] rounded-md" onClick={() => handleEdit(record)}>Edit</button>
+          <button className="bg-green-600 text-[10px] text-white h-[20px] w-[40px] rounded-md" onClick={() => handleEdit(record)}>Edit</button>
           <Popconfirm
             title="Kinoni o'chirish"
             description="Haqiqatan ham bu kinoni o'chirmoqchimisiz?"
@@ -168,6 +173,7 @@ const Movies = () => {
     country: "",
     year: 2024,
     description: "",
+    ticket_count: 0
   });
 
   // Form o'zgarishlarini boshqarish
@@ -175,18 +181,43 @@ const Movies = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "genre" ? value.split(",") : value,
-    }));
+    
+    // Agar ticket_count bo'lsa, uni raqamga o'giramiz
+    if (name === "ticket_count") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]:  parseInt(value) || 0, // Agar parseInt null qaytarsa, 0 ni ishlatamiz
+      }));
+    } else if (name === "genre") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.split(","),
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
+  
 
   // Yangi kino qo'shish yoki mavjud kinoni yangilash
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     // Ma'lumotlar qaytib kelishi uchun body yaratish
-    const requestData = { ...formData };
+    const requestData = { 
+      ...formData,
+      // Raqamli fieldlarni to'g'ri formatda o'giramiz
+      ageRestriction: Number(formData.ageRestriction),
+      price: Number(formData.price),
+      hallNumber: Number(formData.hallNumber),
+      duration: Number(formData.duration),
+      year: Number(formData.year),
+      ticket_count: Number(formData.ticket_count)
+    };
+    
+    console.log("Submitting data:", requestData); // Debug uchun
     
     // Edit rejimida bo'lsa, update API ga yuborish
     if (isEditMode && currentId) {
@@ -195,13 +226,15 @@ const Movies = () => {
         method: "PATCH",
         body: { ...requestData, id: currentId },
       })
-        .then(() => {
+        .then((response) => {
+          console.log("Update response:", response); // Debug uchun
           setOpen(false);
           notifications("update-movie");
           fetchMovies();
           resetForm();
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error("Error updating movie:", error);
           notifications("err-update-movie");
         });
     } else {
@@ -211,7 +244,8 @@ const Movies = () => {
         method: "POST",
         body: requestData,
       })
-        .then(() => {
+        .then((response) => {
+          console.log("Add response:", response); // Debug uchun
           setOpen(false);
           notifications("add-movie");
           fetchMovies(); 
@@ -223,9 +257,6 @@ const Movies = () => {
         });
     }
   };
-
-
-
   
   // Form ni boshlang'ich holatga qaytarish
   const resetForm = () => {
@@ -245,6 +276,7 @@ const Movies = () => {
       country: "",
       year: 2024,
       description: "",
+      ticket_count: 0
     });
     setIsEditMode(false);
     setCurrentId(undefined);
@@ -258,7 +290,6 @@ const Movies = () => {
 
   // Kinoni tahrirlash
   const handleEdit = (record: MovieTicketData) => {
-    
     // Mavjud kinoning ma'lumotlarini formga joylash
     setFormData({
       title: record.title,
@@ -276,6 +307,7 @@ const Movies = () => {
       country: record.country,
       year: record.year,
       description: record.description,
+      ticket_count: record.ticket_count !== undefined ? Number(record.ticket_count) : 0
     });
     
     // Tahrirlash rejimi va ID ni o'rnatish
@@ -288,7 +320,6 @@ const Movies = () => {
 
   // Kinoni o'chirish
   const handleDelete = (record: MovieTicketData) => {
-    
     // API orqali kinoni o'chirish
     axios({
       url: `/admin/delete-movie/${record?._id}`,
@@ -571,9 +602,27 @@ const Movies = () => {
                 />
               </div>
 
+              <div className="flex flex-col">
+                <label
+                  htmlFor="ticket_count"
+                  className="text-sm mb-1 text-gray-600"
+                >
+                  Bilet soni
+                </label>
+                <input
+                  id="ticket_count"
+                  type="number"
+                  name="ticket_count"
+                  value={formData.ticket_count}
+                  onChange={handleChange}
+                  placeholder="Biletdan qancha mavjud"
+                  className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#1677ff]"
+                />
+              </div>
+
               <div className="flex flex-col col-span-2">
                 <label
-                  htmlFor="description"
+                  htmlFor="descripstringtion"
                   className="text-sm mb-1 text-gray-600"
                 >
                   kino haqida qisqacha ma'lumot
